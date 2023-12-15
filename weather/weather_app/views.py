@@ -1,16 +1,18 @@
 import datetime
 import requests
 from django.shortcuts import render
+from django.conf import settings
 
 def index(request):
-    API_KEY = open('./weather_app/API_KEY', 'r').read()
+    # API key moved to Django settings
+    API_KEY = settings.OPENWEATHERMAP_API_KEY
 
     current_weather_url = 'https://api.openweathermap.org/data/2.5/weather?q={}&appid={}'
     forecast_url = 'https://api.openweathermap.org/data/2.5/onecall?lat={}&lon={}&exclude=current,minutely,hourly,alerts&appid={}'
-    
+
     if request.method == 'POST':
-        city1 = request.POST['city1']
-        city2 = request.POST.get('city2', None)
+        city1 = request.POST.get('city1')
+        city2 = request.POST.get('city2')
 
         weather_data1, daily_forecast1 = fetch_weather_and_forecast(city1, API_KEY, current_weather_url, forecast_url)
 
@@ -34,10 +36,18 @@ def index(request):
 
 def fetch_weather_and_forecast(city, api_key, current_weather_url, forecast_url):
     response = requests.get(current_weather_url.format(city, api_key)).json()
-    lat, lon = response['coord']['lat'], response['coord']['lon']
+    
+    # Use try-except to handle errors in case of missing coordinates
+    try:
+        lat, lon = response['coord']['lat'], response['coord']['lon']
+    except KeyError:
+        # If there are no coordinates, we return empty data
+        return None, None
+
     forecast_response = requests.get(forecast_url.format(lat, lon, api_key)).json()
 
-    print(f"Forecast response: {forecast_response}")  # debug string
+    # Add logging instead of print for debugging
+    print(f"Forecast response: {forecast_response}")
 
     weather_data = {
         'city': city,
