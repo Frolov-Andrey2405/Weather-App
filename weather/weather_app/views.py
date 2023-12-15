@@ -1,17 +1,16 @@
 import datetime
 import requests
-
 from django.shortcuts import render
 
 def index(request):
-    API_KEY = open('API_KEY', 'r').read()
+    API_KEY = open('./weather_app/API_KEY', 'r').read()
 
-    current_weather_url = 'https://api.openweathermap.orq/data/2.5/weather?q={}&appid={}'
-    forecast_url = 'https://api.openweathermap.orq/data/2.5/onecall?lat={}&lon={}&exclude=current,minutely,hourly,alerts&appid={}'
+    current_weather_url = 'https://api.openweathermap.org/data/2.5/weather?q={}&appid={}'
+    forecast_url = 'https://api.openweathermap.org/data/2.5/onecall?lat={}&lon={}&exclude=current,minutely,hourly,alerts&appid={}'
     
     if request.method == 'POST':
         city1 = request.POST['city1']
-        city2 = request.get('city2', None)
+        city2 = request.POST.get('city2', None)
 
         weather_data1, daily_forecast1 = fetch_weather_and_forecast(city1, API_KEY, current_weather_url, forecast_url)
 
@@ -38,6 +37,8 @@ def fetch_weather_and_forecast(city, api_key, current_weather_url, forecast_url)
     lat, lon = response['coord']['lat'], response['coord']['lon']
     forecast_response = requests.get(forecast_url.format(lat, lon, api_key)).json()
 
+    print(f"Forecast response: {forecast_response}")  # debug string
+
     weather_data = {
         'city': city,
         'temperature': round(response['main']['temp'] - 273.15, 2),
@@ -47,7 +48,7 @@ def fetch_weather_and_forecast(city, api_key, current_weather_url, forecast_url)
 
     daily_forecast = []
 
-    for daily_data in forecast_response['daily'][:5]:
+    for daily_data in forecast_response.get('daily', [])[:5]:
         daily_forecast.append({
             'day': datetime.datetime.fromtimestamp(daily_data['dt']).strftime('%A'),
             'min_temp': round(daily_data['temp']['min'] - 273.15, 2),
